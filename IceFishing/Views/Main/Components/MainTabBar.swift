@@ -2,7 +2,6 @@ import SwiftUI
 
 struct MainTabBar: View {
     @Binding var selectedTab: MainTab
-    @Namespace private var selectionNamespace
 
     private let activeLabelColor = Color(red: 0.45, green: 0.92, blue: 1.0)
     private let inactiveLabelColor = Color.white.opacity(0.45)
@@ -53,7 +52,6 @@ struct MainTabBar: View {
                 if isSelected {
                     highlightShape
                         .fill(SurfaceStyle.tabHighlightFill)
-                        .matchedGeometryEffect(id: "tabSelectionBackground", in: selectionNamespace)
                 }
             }
         }

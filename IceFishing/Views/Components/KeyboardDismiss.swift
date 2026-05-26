@@ -132,6 +132,11 @@ private struct KeyboardDismissInstaller: UIViewControllerRepresentable {
 
 extension View {
     func dismissKeyboardOnTapOutside() -> some View {
-        background(KeyboardDismissInstaller().frame(width: 0, height: 0))
+        background {
+            KeyboardDismissInstaller()
+                .frame(width: 1, height: 1)
+                .opacity(0)
+                .allowsHitTesting(false)
+        }
     }
 }

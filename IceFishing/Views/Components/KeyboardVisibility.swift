@@ -1,6 +1,5 @@
 import Combine
 import SwiftUI
-import UIKit
 
 @MainActor
 final class KeyboardVisibility: ObservableObject {

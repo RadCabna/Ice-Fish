@@ -6,6 +6,14 @@ struct BankrollPoint: Identifiable, Equatable {
     let balance: Double
 }
 
+struct SonarBlip: Identifiable, Equatable {
+    let id: UUID
+    let catchCount: Int
+    /// 0 = center (many catches), 1 = outer edge (few catches)
+    let distanceFromCenter: CGFloat
+    let angle: Double
+}
+
 struct CatchDistributionValues: Equatable {
     let smallCatches: Double
     let bigMulti: Double
@@ -131,11 +139,44 @@ struct AnalyticsSnapshot {
         return "Keep sessions under 30 minutes for sharper decisions."
     }
 
-    var sonarBlipStrengths: [Double] {
-        guard !sessions.isEmpty else { return [0.35, 0.55, 0.7, 0.45, 0.9] }
-        return sessions.prefix(6).map { session in
-            min(1, Double(session.summary.frostPeakPercent) / 100 + 0.25)
+    var sonarBlips: [SonarBlip] {
+        guard !sessions.isEmpty else { return [] }
+
+        let recent = sessions
+            .sorted { $0.summary.endedAt > $1.summary.endedAt }
+            .prefix(10)
+
+        let maxCatches = max(1, recent.map(\.summary.totalCatchCount).max() ?? 1)
+
+        return recent.map { session in
+            let catchCount = session.summary.totalCatchCount
+            return SonarBlip(
+                id: session.id,
+                catchCount: catchCount,
+                distanceFromCenter: Self.distanceFromCenter(for: catchCount, maxCatches: maxCatches),
+                angle: Self.stableAngle(seed: session.id)
+            )
         }
+    }
+
+    static func distanceFromCenter(for catchCount: Int, maxCatches: Int) -> CGFloat {
+        let inner: CGFloat = 0.14
+        let outer: CGFloat = 0.88
+
+        guard maxCatches > 0 else { return outer }
+        guard catchCount > 0 else { return outer }
+
+        let ratio = CGFloat(catchCount) / CGFloat(maxCatches)
+        return outer - ratio * (outer - inner)
+    }
+
+    static func stableAngle(seed: UUID) -> Double {
+        var hash = Int(seed.uuid.0)
+        for byte in seed.uuid.1...seed.uuid.15 {
+            hash = hash &* 31 &+ Int(byte)
+        }
+        let unit = Double(abs(hash % 10_000)) / 10_000.0
+        return unit * 2 * .pi - .pi / 2
     }
 
     private func averageFrost(for records: [JournalSessionRecord]) -> Int {

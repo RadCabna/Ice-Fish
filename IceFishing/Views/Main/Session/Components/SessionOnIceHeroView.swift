@@ -6,7 +6,7 @@ struct SessionOnIceHeroView: View {
     let frostFrameOpacity: Double
 
     private var heroHeight: CGFloat {
-        screenWidth / Self.referenceAspectRatio
+        max(1, screenWidth / Self.referenceAspectRatio)
     }
 
     private static let referenceAspectRatio: CGFloat = {

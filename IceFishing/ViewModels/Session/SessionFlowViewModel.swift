@@ -21,6 +21,9 @@ final class SessionFlowViewModel: ObservableObject {
         live.stop()
         pendingSessionConfig = live.config
         let summary = live.makeSummary()
+        if !path.isEmpty {
+            path.removeLast()
+        }
         path.append(SessionRoute.complete(summary))
     }
 
@@ -40,14 +43,25 @@ final class SessionFlowViewModel: ObservableObject {
     }
 
     func resetToSetup() {
+        KeyboardDismiss.dismiss()
         liveViewModel?.stop()
         liveViewModel = nil
-        path = NavigationPath()
-        setupViewModel.resetForm()
+        pendingSessionConfig = nil
+
+        var transaction = Transaction()
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            path = NavigationPath()
+        }
+
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(400))
+            setupViewModel.resetForm()
+        }
     }
 
     func updateDefaultDuration(_ minutes: Int) {
-        setupViewModel.timerMinutes = Double(minutes)
+        setupViewModel.setDefaultDuration(minutes)
     }
 
     func resetSetupFormOnTabEntry() {

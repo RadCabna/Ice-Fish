@@ -4,8 +4,12 @@ import Foundation
 final class SessionSetupViewModel: ObservableObject {
     @Published var stopLossText = ""
     @Published var takeProfitText = ""
-    @Published var timerMinutes: Double = SettingsViewModel.storedDefaultSessionMinutes()
+    @Published var timerMinutes: Double = SessionSetupViewModel.clampedDuration(
+        SettingsViewModel.storedDefaultSessionMinutes()
+    )
     @Published var dotPulseToken = 0
+
+    private var suppressSideEffects = false
 
     let timerRange: ClosedRange<Double> = 10...60
     let timerStep: Double = 5
@@ -19,14 +23,31 @@ final class SessionSetupViewModel: ObservableObject {
     }
 
     func triggerDotPulse() {
+        guard !suppressSideEffects else { return }
         dotPulseToken += 1
     }
 
+    func setDefaultDuration(_ minutes: Int) {
+        timerMinutes = Self.clampedDuration(Double(minutes))
+    }
+
     func resetForm() {
+        suppressSideEffects = true
         stopLossText = ""
         takeProfitText = ""
-        timerMinutes = SettingsViewModel.storedDefaultSessionMinutes()
+        timerMinutes = Self.clampedDuration(SettingsViewModel.storedDefaultSessionMinutes())
         dotPulseToken = 0
+        suppressSideEffects = false
+    }
+
+    private static func clampedDuration(_ minutes: Double) -> Double {
+        let range: ClosedRange<Double> = 10...60
+        let step: Double = 5
+        guard minutes.isFinite else { return range.lowerBound }
+
+        let bounded = min(max(minutes, range.lowerBound), range.upperBound)
+        let steps = round((bounded - range.lowerBound) / step)
+        return min(range.upperBound, range.lowerBound + steps * step)
     }
 
     func makeConfig() -> SessionConfig? {

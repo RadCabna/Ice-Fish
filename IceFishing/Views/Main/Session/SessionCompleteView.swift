@@ -7,6 +7,7 @@ struct SessionCompleteView: View {
     let onDelete: () -> Void
 
     @State private var noteText = ""
+    @State private var isSaving = false
 
     private let quickTags = [
         "Cold streak after 20 minutes",
@@ -26,8 +27,16 @@ struct SessionCompleteView: View {
                 noteSection
 
                 OnboardingGradientButton(title: "Save Session") {
-                    onSave(noteText)
+                    guard !isSaving else { return }
+                    isSaving = true
+                    KeyboardDismiss.dismiss()
+                    Task { @MainActor in
+                        try? await Task.sleep(for: .milliseconds(300))
+                        onSave(noteText)
+                        isSaving = false
+                    }
                 }
+                .disabled(isSaving)
 
                 HStack(spacing: screenWidth * 0.03) {
                     secondaryButton(title: "View Analytics") {
@@ -41,15 +50,6 @@ struct SessionCompleteView: View {
         }
         .scrollContentBackground(.hidden)
         .scrollDismissesKeyboard(.interactively)
-        .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button("Done") {
-                    KeyboardDismiss.dismiss()
-                }
-                .font(.system(size: screenHeight * 0.017, weight: .semibold))
-            }
-        }
         .navigationBarBackButtonHidden(true)
         .navigationBarHidden(true)
     }

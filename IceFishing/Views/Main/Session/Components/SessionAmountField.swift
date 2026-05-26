@@ -33,6 +33,7 @@ struct SessionAmountField: View {
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .padding(.horizontal, screenWidth * 0.04)
+                        .keyboardDoneAccessory()
                         .onChange(of: text) { _, _ in onChange() }
                 }
             }

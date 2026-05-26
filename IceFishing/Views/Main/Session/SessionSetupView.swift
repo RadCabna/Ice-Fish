@@ -20,13 +20,15 @@ struct SessionSetupView: View {
                     SessionAmountField(
                         title: "Stop-Loss Amount",
                         placeholder: "$ 0.00",
-                        text: $viewModel.stopLossText
+                        text: $viewModel.stopLossText,
+                        onChange: { viewModel.triggerDotPulse() }
                     )
 
                     SessionAmountField(
                         title: "Take-Profit Goal",
                         placeholder: "$ 0.00",
-                        text: $viewModel.takeProfitText
+                        text: $viewModel.takeProfitText,
+                        onChange: { viewModel.triggerDotPulse() }
                     )
 
                     timerCard
@@ -53,21 +55,6 @@ struct SessionSetupView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .navigationBarHidden(true)
         .colorScheme(.dark)
-        .toolbar {
-            ToolbarItemGroup(placement: .keyboard) {
-                Spacer()
-                Button("Done") {
-                    KeyboardDismiss.dismiss()
-                }
-                .font(.system(size: screenHeight * 0.017, weight: .semibold))
-            }
-        }
-        .onChange(of: viewModel.stopLossText) { _, _ in
-            viewModel.triggerDotPulse()
-        }
-        .onChange(of: viewModel.takeProfitText) { _, _ in
-            viewModel.triggerDotPulse()
-        }
     }
 
     private var header: some View {

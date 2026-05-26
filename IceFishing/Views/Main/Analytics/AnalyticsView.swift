@@ -3,6 +3,7 @@ import SwiftUI
 struct AnalyticsView: View {
     @ObservedObject var journalViewModel: JournalViewModel
     @State private var snapshot = AnalyticsSnapshot.make(from: [])
+    @State private var reloadTask: Task<Void, Never>?
 
     private var horizontalInset: CGFloat {
         screenWidth * 0.05
@@ -14,7 +15,7 @@ struct AnalyticsView: View {
                 header
 
                 AnalyticsPanel(title: "Echo Sounder") {
-                    EchoSounderView(blipStrengths: snapshot.sonarBlipStrengths)
+                    EchoSounderView(blips: snapshot.sonarBlips)
                 }
 
                 AnalyticsPanel(title: "Bankroll Movement") {
@@ -55,9 +56,15 @@ struct AnalyticsView: View {
             reloadSnapshot()
         }
         .onChange(of: journalViewModel.sessions.count) { _, _ in
-            reloadSnapshot()
+            scheduleReloadSnapshot()
         }
-        .onChange(of: journalViewModel.sessions.map(\.id)) { _, _ in
+    }
+
+    private func scheduleReloadSnapshot() {
+        reloadTask?.cancel()
+        reloadTask = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(300))
+            guard !Task.isCancelled else { return }
             reloadSnapshot()
         }
     }

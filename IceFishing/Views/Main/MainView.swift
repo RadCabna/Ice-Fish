@@ -22,6 +22,10 @@ struct MainView: View {
         isSessionTabBarAllowed && !keyboardVisibility.isVisible
     }
 
+    private var tabBarBottomPadding: CGFloat {
+        isTabBarVisible ? tabBarReservedHeight : 0
+    }
+
     var body: some View {
         ZStack {
             AppBackground()
@@ -68,7 +72,7 @@ struct MainView: View {
                 .tag(MainTab.settings)
             }
             .toolbar(.hidden, for: .tabBar)
-            .padding(.bottom, isTabBarVisible ? tabBarReservedHeight : 0)
+            .padding(.bottom, tabBarBottomPadding)
             .background(SystemTabViewBackgroundClear())
             .animation(.spring(response: 0.38, dampingFraction: 0.82), value: isTabBarVisible)
 
@@ -80,7 +84,6 @@ struct MainView: View {
                 .opacity(isTabBarVisible ? 1 : 0)
                 .allowsHitTesting(isTabBarVisible)
                 .animation(.spring(response: 0.38, dampingFraction: 0.82), value: isTabBarVisible)
-                .ignoresSafeArea(.keyboard, edges: .bottom)
         }
         .background {
             AppBackground()

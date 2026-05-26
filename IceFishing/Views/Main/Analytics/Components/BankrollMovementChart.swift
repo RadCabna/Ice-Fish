@@ -25,16 +25,16 @@ struct BankrollMovementChart: View {
             }
 
             GeometryReader { geometry in
-                chartCanvas(size: geometry.size)
+                chartCanvas(size: geometry.size.sanitized)
                     .contentShape(Rectangle())
                     .gesture(
                         DragGesture(minimumDistance: 0)
                             .onChanged { value in
-                                selectPoint(at: value.location, in: geometry.size)
+                                selectPoint(at: value.location, in: geometry.size.sanitized)
                             }
                     )
                     .onTapGesture { location in
-                        selectPoint(at: location, in: geometry.size)
+                        selectPoint(at: location, in: geometry.size.sanitized)
                     }
             }
             .frame(height: screenHeight * 0.2)
@@ -42,7 +42,10 @@ struct BankrollMovementChart: View {
             xAxisLabels
         }
         .onAppear {
-            selectedPointID = points.last?.id
+            syncSelectedPoint()
+        }
+        .onChange(of: points.map(\.id)) { _, _ in
+            syncSelectedPoint()
         }
     }
 
@@ -145,13 +148,14 @@ struct BankrollMovementChart: View {
     }
 
     private func plotArea(in size: CGSize) -> CGRect {
-        let leftInset = size.width * 0.14
-        let bottomInset = size.height * 0.08
+        let safeSize = size.sanitized
+        let leftInset = safeSize.width * 0.14
+        let bottomInset = safeSize.height * 0.08
         return CGRect(
             x: leftInset,
-            y: size.height * 0.06,
-            width: max(1, size.width - leftInset - size.width * 0.04),
-            height: max(1, size.height - size.height * 0.06 - bottomInset)
+            y: safeSize.height * 0.06,
+            width: max(1, safeSize.width - leftInset - safeSize.width * 0.04),
+            height: max(1, safeSize.height - safeSize.height * 0.06 - bottomInset)
         )
     }
 
@@ -198,6 +202,14 @@ struct BankrollMovementChart: View {
         }
 
         selectedPointID = nearestID
+    }
+
+    private func syncSelectedPoint() {
+        if let selectedPointID,
+           points.contains(where: { $0.id == selectedPointID }) {
+            return
+        }
+        selectedPointID = points.last?.id
     }
 
     private func tooltip(for point: BankrollPoint) -> some View {
