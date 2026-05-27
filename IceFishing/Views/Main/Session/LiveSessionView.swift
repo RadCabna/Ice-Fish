@@ -74,6 +74,10 @@ struct LiveSessionView: View {
         .colorScheme(.dark)
         .navigationBarHidden(true)
         .animation(.easeInOut(duration: 0.35), value: isIceLocked)
+        .onChange(of: viewModel.isGoalReached) { _, reached in
+            guard reached else { return }
+            onFinish()
+        }
         .onDisappear {
             viewModel.stop()
         }

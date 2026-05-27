@@ -139,24 +139,79 @@ struct AnalyticsSnapshot {
         return "Keep sessions under 30 minutes for sharper decisions."
     }
 
+    private static let maxSonarBlips = 7
+
     var sonarBlips: [SonarBlip] {
         guard !sessions.isEmpty else { return [] }
 
-        let recent = sessions
-            .sorted { $0.summary.endedAt > $1.summary.endedAt }
-            .prefix(10)
-
+        let recent = sessions.sorted { $0.summary.endedAt > $1.summary.endedAt }
         let maxCatches = max(1, recent.map(\.summary.totalCatchCount).max() ?? 1)
 
-        return recent.map { session in
-            let catchCount = session.summary.totalCatchCount
-            return SonarBlip(
-                id: session.id,
-                catchCount: catchCount,
-                distanceFromCenter: Self.distanceFromCenter(for: catchCount, maxCatches: maxCatches),
-                angle: Self.stableAngle(seed: session.id)
+        var blips: [SonarBlip] = []
+        var remaining = Self.maxSonarBlips
+
+        for session in recent {
+            guard remaining > 0 else { break }
+
+            let summary = session.summary
+            let desiredCount = Self.desiredBlipCount(for: summary)
+            guard desiredCount > 0 else { continue }
+
+            let count = min(desiredCount, remaining)
+            let distance = Self.distanceFromCenter(
+                for: summary.totalCatchCount,
+                maxCatches: maxCatches
             )
+            let angles = Self.spreadAngles(seed: session.id, count: count)
+
+            for index in 0..<count {
+                blips.append(
+                    SonarBlip(
+                        id: Self.blipID(sessionID: session.id, index: index),
+                        catchCount: summary.totalCatchCount,
+                        distanceFromCenter: distance,
+                        angle: angles[index]
+                    )
+                )
+            }
+
+            remaining -= count
         }
+
+        return blips
+    }
+
+    /// More small catches → more blips on the same radius (spread by angle).
+    static func desiredBlipCount(for summary: SessionSummary) -> Int {
+        guard summary.totalCatchCount > 0 else { return 0 }
+
+        if summary.smallCatchCount <= 0 {
+            return 1
+        }
+
+        // 1 blip for first small catch, then +1 per pair of additional small catches (max 4 per session).
+        let fromSmall = 1 + (summary.smallCatchCount - 1) / 2
+        return min(4, fromSmall)
+    }
+
+    static func spreadAngles(seed: UUID, count: Int) -> [Double] {
+        let base = stableAngle(seed: seed)
+        guard count > 1 else { return [base] }
+
+        let spread = min(.pi / 2.5, Double(count - 1) * 0.2)
+        let start = base - spread / 2
+
+        return (0..<count).map { index in
+            let progress = Double(index) / Double(count - 1)
+            return start + progress * spread
+        }
+    }
+
+    static func blipID(sessionID: UUID, index: Int) -> UUID {
+        var bytes = sessionID.uuid
+        bytes.14 = UInt8((Int(bytes.14) + index * 3) % 256)
+        bytes.15 = UInt8((Int(bytes.15) + index * 11) % 256)
+        return UUID(uuid: bytes)
     }
 
     static func distanceFromCenter(for catchCount: Int, maxCatches: Int) -> CGFloat {
@@ -172,7 +227,17 @@ struct AnalyticsSnapshot {
 
     static func stableAngle(seed: UUID) -> Double {
         var hash = Int(seed.uuid.0)
-        for byte in seed.uuid.1...seed.uuid.15 {
+        // IMPORTANT:
+        // `seed.uuid.1...seed.uuid.15` would create a range from *byte values*
+        // (0...255), and lowerBound can be > upperBound -> fatal error.
+        // We iterate over a fixed list of bytes instead.
+        let bytes: [UInt8] = [
+            seed.uuid.1, seed.uuid.2, seed.uuid.3, seed.uuid.4,
+            seed.uuid.5, seed.uuid.6, seed.uuid.7, seed.uuid.8,
+            seed.uuid.9, seed.uuid.10, seed.uuid.11, seed.uuid.12,
+            seed.uuid.13, seed.uuid.14, seed.uuid.15
+        ]
+        for byte in bytes {
             hash = hash &* 31 &+ Int(byte)
         }
         let unit = Double(abs(hash % 10_000)) / 10_000.0

@@ -9,6 +9,7 @@ final class LiveSessionViewModel: ObservableObject {
     @Published private(set) var bonusCount: Int = 0
     @Published private(set) var smallCatchCount: Int = 0
     @Published private(set) var frostWarningMessage: String?
+    @Published private(set) var isGoalReached = false
 
     let config: SessionConfig
 
@@ -19,7 +20,7 @@ final class LiveSessionViewModel: ObservableObject {
     }
 
     var canLogCatch: Bool {
-        !isSessionBlocked
+        !isSessionBlocked && !isGoalReached
     }
 
     var formattedTime: String {
@@ -109,6 +110,7 @@ final class LiveSessionViewModel: ObservableObject {
             break
         }
         updateFrost()
+        evaluateGoalReached()
     }
 
     func applyPreviewIceLock(elapsedSeconds: Int, balance: Double) {
@@ -164,5 +166,15 @@ final class LiveSessionViewModel: ObservableObject {
         default:
             frostWarningMessage = nil
         }
+    }
+
+    private func evaluateGoalReached() {
+        guard !isGoalReached,
+              config.takeProfit > 0,
+              balance >= config.takeProfit else { return }
+
+        isGoalReached = true
+        frostWarningMessage = nil
+        stopTimer()
     }
 }
