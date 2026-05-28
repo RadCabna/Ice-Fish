@@ -18,8 +18,6 @@ struct SettingsView: View {
 
                     sessionDefaultsSection
 
-                    legalSection
-
                     dataManagementSection
 
                     footer
@@ -94,21 +92,6 @@ struct SettingsView: View {
         }
     }
 
-    private var legalSection: some View {
-        SettingsLegalSafetyCard(
-            onPrivacyPolicyTap: openPrivacyPolicy,
-            onResponsiblePlayTap: openResponsiblePlayDisclaimer
-        )
-    }
-
-    private func openPrivacyPolicy() {
-        // Safari URL will be added later.
-    }
-
-    private func openResponsiblePlayDisclaimer() {
-        // Safari URL will be added later.
-    }
-
     private var dataManagementSection: some View {
         SettingsSectionCard(title: "Data Management") {
             Button {
@@ -140,7 +123,7 @@ struct SettingsView: View {
                 .scaledToFit()
                 .frame(width: screenHeight * 0.028, height: screenHeight * 0.028)
 
-            Text("IceFishing: Mind Tracker")
+            Text("Fisherman Mind Tracker")
                 .font(.system(size: screenHeight * 0.015, weight: .medium))
                 .foregroundStyle(Color.white.opacity(0.55))
 
